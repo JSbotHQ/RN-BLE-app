@@ -15,45 +15,66 @@ class Home extends Component {
        rowHasChanged: (r1, r2) => r1 !== r2 }
      );
      this.state = {
+       btnTitle: 'scan',
+       headLine: 'tap to scan',
        uuidRef: '8492E75F-4FD6-469D-B132-043FE94921D8',
        dataSource: ds.cloneWithRows([])
      };
 
      this.scanBeacon = this.scanBeacon.bind(this);
+     this.stopScanBeacon = this.stopScanBeacon.bind(this);
    }
 
    componentWillMount() {
 
-         Beacons.detectIBeacons();
 
-         const uuid = this.state.uuidRef;
-         Beacons
-           .startRangingBeaconsInRegion(
-             {identifier : 'REGION1',
-             uuid: uuid}
-           )
-           .then(
-             () => console.log('Beacons ranging started succesfully')
-           )
-           .catch(
-             error => console.log(`Beacons ranging not started, error: ${error}`)
-           );
    }
 
    scanBeacon(){
+          Beacons.detectIBeacons();
+
+            const uuid = this.state.uuidRef;
+            Beacons
+              .startRangingBeaconsInRegion(
+                {identifier : 'REGION1',
+                uuid: uuid}
+              )
+              .then(
+                () => this.setState({headLine: 'Beacons ranging started succesfully'})
+              )
+              .catch(
+                error => console.log(`Beacons ranging not started, error: ${error}`)
+              );
+
         this.beaconsDidRange = DeviceEventEmitter.addListener(
                'beaconsDidRange',
                (data) => {
-               console.log('Beacons', data.beacons)
+
                  this.setState({
+                   headLine: 'All beacons in the area',
+                   btnTitle: 'stop',
                    dataSource: this.state.dataSource.cloneWithRows(data.beacons)
                  });
                }
              );
    }
 
+   stopScanBeacon(){
+        const uuid = this.state.uuidRef;
+
+        this.setState({
+           btnTitle: 'scan',
+           headLine: 'tap to scan',
+         });
+
+         Beacons.stopRangingBeaconsInRegion({identifier : 'REGION1',
+                                                         uuid: uuid})
+   }
+
    render() {
-     const { dataSource } =  this.state;
+     const { dataSource, btnTitle, headLine } =  this.state;
+     let btnColor = btnTitle === 'scan'? '#00adc1':'#db7862'
+
      return (
        <View style={styles.container}>
 
@@ -65,14 +86,14 @@ class Home extends Component {
                 <Text>menu</Text>
               </ScrollView>
               <ScrollView tabLabel="access-point" style={styles.tabView}>
-                <View style={{}}>
-                    <TouchableOpacity onPress={()=>this.scanBeacon()}>
-                        <View style={styles.circleBtn}>
-                            <Text style={{fontSize: 30, color: 'white'}}>Scan</Text>
+                <View style={{flex: .40, justifyContent: 'center', alignItems: 'center'}}>
+                    <TouchableOpacity onPress={btnTitle === 'scan' ? ()=> this.scanBeacon() : ()=> this.stopScanBeacon()}>
+                        <View style={[styles.circleBtn,{backgroundColor: btnColor}]}>
+                            <Text style={{fontSize: 30, color: 'white'}}>{btnTitle}</Text>
                         </View>
                     </TouchableOpacity>
                      <Text style={styles.headline}>
-                       All beacons in the area
+                       { headLine }
                      </Text>
                      <ListView
                        dataSource={ dataSource }
@@ -129,11 +150,14 @@ const styles = StyleSheet.create({
      paddingTop: 20
    },
    row: {
+     backgroundColor: '#c7d9db',
+     borderRadius: 4,
+     elevation: 4,
      padding: 8,
      paddingBottom: 16
    },
    smallText: {
-     fontSize: 11
+     fontSize: 16
    },
    tabView: {
      flex: 1,
@@ -147,8 +171,7 @@ const styles = StyleSheet.create({
        justifyContent: 'center',
        alignItems: 'center',
        borderColor: '#00adc1',
-       elevation   : 4,
-       backgroundColor: '#00adc1',
+       elevation: 4
    }
  });
 
